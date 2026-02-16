@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Juego de Separación de Residuos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            text-align: center;
+        }
+        #juego {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            align-items: flex-end;
+            margin: 40px auto 0 auto;
+            width: 900px;
+            height: 500px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .caneca {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            margin: 0 20px;
+            background: none;
+            border: none;
+            box-shadow: none;
+        }
+        .caneca-img {
+            width: 150px;
+            height: 200px;
+            object-fit: contain;
+            margin-bottom: 5px;
+        }
+        .caneca-label {
+            margin-bottom: 10px;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        #residuos {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            z-index: 2;
+        }
+        .residuo {
+            width: 90px;
+            background: #eee;
+            border: 2px solid #888;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            font-size: 1em;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+            padding: 8px 4px 4px 4px;
+            box-sizing: border-box;
+        }
+        .residuo img {
+            display: block;
+            margin: 0 auto 4px auto;
+        }
+        .residuo-texto {
+            font-size: 0.85em;
+            text-align: center;
+            margin-top: 2px;
+            color: #444;
+            word-break: break-word;
+        }
+        #mensaje {
+            text-align: center;
+            font-size: 1.2em;
+            margin-top: 20px;
+            min-height: 30px;
+        }
+        .correcto {
+            color: #2e8b57;
+            font-weight: bold;
+        }
+        .error {
+            color: #c0392b;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Juego: Separación de Residuos (Resolución 2184 de 2019)</h1>
+    <div id="juego">
+        <div id="residuos"></div>
+        <div class="caneca blanca" data-tipo="blanca">
+            <img src="img/aprovechables.png" alt="Caneca Blanca" class="caneca-img">
+        </div>
+        <div class="caneca negra" data-tipo="negra">
+            <img src="img/noaprovechables.png" alt="Caneca Negra" class="caneca-img">
+        </div>
+        <div class="caneca verde" data-tipo="verde">
+            <img src="img/organicos.png" alt="Caneca Verde" class="caneca-img">
+        </div>
+        <div class="caneca roja" data-tipo="roja">
+            <img src="img/peligrosos.png" alt="Caneca Roja" class="caneca-img">
+        </div>
+    </div>
+    <div id="mensaje"></div>
+    <footer style="width:100%;text-align:center;margin-top:0px;font-size:0.95em;color:#555;line-height: 1.5;">
+        <strong>Hecho por:</strong> Edwin Alexander Cataño Calle. 
+        <br>
+        <strong>Ficha:</strong> 331203. 
+        <br>
+        <strong>Competencia:</strong> Lorem ipsum dolor sit amet consectetur adipisicing elit. Eaque officia, ut iusto quaerat e
+    </footer>
+    <script>
+        // Lista de residuos y su caneca correcta
+        const residuos = [
+            { nombre: 'Botella plástica', tipo: 'blanca' },
+            { nombre: 'Cáscara de banano', tipo: 'verde' },
+            { nombre: 'Papel', tipo: 'blanca' },
+            { nombre: 'Servilleta usada', tipo: 'negra' },
+            { nombre: 'Lata de gaseosa', tipo: 'blanca' },
+            { nombre: 'Restos de comida', tipo: 'verde' },
+            { nombre: 'Vaso desechable', tipo: 'negra' },
+            { nombre: 'Cáscara de huevo', tipo: 'verde' },
+            { nombre: 'Empaque de papas', tipo: 'negra' },
+            { nombre: 'Cartón', tipo: 'blanca' },
+            { nombre: 'Pila usada', tipo: 'roja' },
+            { nombre: 'Medicamento vencido', tipo: 'roja' },
+            { nombre: 'Vidrio', tipo: 'blanca' },
+            { nombre: 'Cepillo de dientes', tipo: 'negra' },
+            { nombre: 'Restos de frutas', tipo: 'verde' },
+            { nombre: 'Aerosol', tipo: 'roja' }
+        ];
+
+        const residuosDiv = document.getElementById('residuos');
+        const mensajeDiv = document.getElementById('mensaje');
+        let residuosRestantes = residuos.length;
+
+        // Crear los residuos en pantalla
+        residuos.forEach((residuo, idx) => {
+            const div = document.createElement('div');
+            div.className = 'residuo';
+            // Generar nombre de archivo: minúsculas, sin espacios, sin tildes, sin caracteres especiales
+            let nombreArchivo = residuo.nombre
+                .toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '') // quitar tildes
+                .replace(/ /g, '')
+                .replace(/[^a-z0-9]/g, '')
+                + '.png';
+            const img = document.createElement('img');
+            img.src = 'img/residuos/' + nombreArchivo;
+            img.alt = residuo.nombre;
+            img.style.width = '60px';
+            img.style.height = '60px';
+            img.style.objectFit = 'contain';
+            // Permitir arrastrar desde la imagen
+            img.draggable = false;
+            img.addEventListener('mousedown', function(e) {
+                // Si se inicia el drag desde la imagen, delegar al contenedor
+                div.dispatchEvent(new DragEvent('dragstart', {bubbles:true, cancelable:true, dataTransfer: e.dataTransfer}));
+            });
+            div.appendChild(img);
+            const span = document.createElement('span');
+            span.textContent = residuo.nombre;
+            span.className = 'residuo-texto';
+            div.appendChild(span);
+            div.draggable = true;
+            div.id = 'residuo-' + idx;
+            div.dataset.tipo = residuo.tipo;
+            div.addEventListener('dragstart', dragStart);
+            residuosDiv.appendChild(div);
+        });
+
+        // Drag and drop
+        let dragged = null;
+
+        function dragStart(e) {
+            dragged = e.target;
+            setMensaje('Arrastra el residuo a la caneca correcta.', '');
+        }
+
+        document.querySelectorAll('.caneca').forEach(caneca => {
+            caneca.addEventListener('dragover', e => {
+                e.preventDefault();
+                caneca.style.boxShadow = '0 0 10px #333';
+            });
+            caneca.addEventListener('dragleave', e => {
+                caneca.style.boxShadow = '';
+            });
+            caneca.addEventListener('drop', e => {
+                e.preventDefault();
+                caneca.style.boxShadow = '';
+                if (!dragged) return;
+                // Normalizar ambos tipos para evitar errores por tildes o mayúsculas
+                function normalizarTipo(str) {
+                    return str
+                        .toLowerCase()
+                        .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                }
+                const tipoResiduo = normalizarTipo(dragged.dataset.tipo);
+                const tipoCaneca = normalizarTipo(caneca.dataset.tipo);
+                if (tipoResiduo === tipoCaneca) {
+                    dragged.style.display = 'none';
+                    setMensaje('¡Correcto! El residuo fue depositado en la caneca adecuada.', 'correcto');
+                    residuosRestantes--;
+                    if (residuosRestantes === 0) {
+                        setMensaje('¡Felicidades! Clasificaste todos los residuos correctamente.', 'correcto');
+                    }
+                } else {
+                    setMensaje('¡Error! Ese residuo no va en esta caneca.', 'error');
+                    // Animación de "rebote"
+                    dragged.style.transition = 'transform 0.2s';
+                    dragged.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        dragged.style.transform = '';
+                    }, 200);
+                }
+            });
+        });
+
+        function setMensaje(msg, tipo) {
+            mensajeDiv.textContent = msg;
+            mensajeDiv.className = tipo;
+        }
+    </script>
+</body>
+</html>
